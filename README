@@ -1,26 +1,19 @@
-Deaconu Andreea-Carina, 324CC
-PC - Tema 1
-
-Am ales sa folosesc un protocol cu fereastra glisanta cu retransmitere selectiva.
-Structur definita de mine contine campurile: check (pentru control corupere date, ce se face in urma unui xor pe bytes), index (pentru cazul cand se reordoneaza pachetele) si campul de date.
+A server sending the contents of a file, and a client receiving and storing it on disk, both implemented in C. I used a sliding window protocol with selective retransmission. Things to take into account:
+- the sent frames could have been altered => performed XOR on bytes and also sent the result for the client to perform this check
+- the sent frames could have been lost
+- the sent frames could have been sent in a different order then initially sent => sent also the index number of the frame
+- there was a timeout
 
 In send.c:
-- calculez marimea ferestrei cu formula prezentata la laborator
-- extrag informatii despre fisier si continutul sau ca in laboratul 2
-- imi populez un vector de structuri de tip msg 
-- trimit intai un numar de pachete mai mic sau egal cu WINDOW
-- apoi, intr-un while, primesc cate o confirmare (de tip ACK sau NACK) si transmit alt pachet
-- am grija ca indexul ultimului pachet trimis sa nu fie mai mare decat indexul ultimului pachet confirmat + WINDOW
-- la final, astept o confirmare de tip DONE de la receiver
+- compute the window size
+- read the file from the disk
+- create an array of msg structures
+- start sending frames; the number of sent but unconfirmed frames at a given time must be <= window size
+- in a loop, I wait for ACKs and NACKs 
+- in the end, I wait for DONE
 
 In recv.c:
-- am si aici un vector de structuri de tip msg, pentru cazul cand se reordoneaza pachetele
-- am un timeout fix de 2 ms pentru a primi un mesaj, in caz ca acestea se pot pierde
-- am o variabila last_confirmed care retine ultimul pachet primit in ordine (inaintea sa nu mai sunt pachete neconfirmate)
-- daca imi ajunge un pachet diferit de cel asteptat, adica diferit de last_confirmed + 1, trimit NACK pentru last_confirmed + 1 (o singura data), apoi continui sa trimit ACK pentru ultimul pachet primit in ordine, dupa algoritmul de la curs
-- pachetele primite out of order sunt stocate in vector pana cand voi face scrierea in fisier
-
-Alte precizari:
-Mi-am definit functia myceil ce are acelasi comportament cu ceil din math.h, pentru ca imi dadea eroare pe vmchecker cand incercam sa o folosesc.
-
-
+- I also keep an array of msg structures for storing the out-of-order frames
+- fixed timeout of 2ms
+- last_confirmed variable stores the inndex of the last package received in the right order
+- I send NACK once if the received package is not the one expected; then keep sending ACK for the last good package received
